@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find . -type f -name \"*.go\" -o -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.js\" -o -name \"*.json\" -o -name \"*.md\" -o -name \"*.yaml\" -o -name \"*.yml\" 2>/dev/null | head -50)",
+      "Bash(echo \"my-app\" | npx shadcn@latest init --yes --template next 2>&1)",
+      "Bash(npx create-next-app@latest web --typescript --tailwind --eslint --app --src-dir=false --import-alias=\"@/*\" --use-pnpm --no-turbopack 2>&1)",
+      "Bash(printf 'n\\\\nn\\\\n' | npx create-next-app@latest web --typescript --tailwind --eslint --app --src-dir=false --import-alias=\"@/*\" --use-pnpm --no-turbopack 2>&1)",
+      "Bash(which pnpm:*)",
+      "Bash(cd web:*)",
+      "Bash(find backend:*)",
+      "Bash(find . -type f ! -path \"*/node_modules/*\" ! -path \"*/.venv/*\" ! -path \"*/__pycache__/*\" ! -path \"*/.git/*\" 2>/dev/null | sort)",
+      "Bash(cd /Users/kkw/www/CrunchGoV2/backend && rm -rf .venv uv.lock && uv venv)",
+      "Bash(uv pip:*)",
+      "Bash(uv run:*)",
+      "Bash(psql postgres:*)",
+      "Bash(psql crunchgo:*)",
+      "Bash(cd /Users/kkw/www/CrunchGoV2/web && pnpm dev)",
+      "Bash(curl -X POST http://localhost:8000/api/v1/auth/login -H \"Content-Type: application/x-www-form-urlencoded\" -d \"username=admin&password=admin123\" -v 2>&1 | tail -30)",
+      "Bash(curl -X POST http://localhost:8000/api/v1/auth/login -d \"username=admin&password=admin123\" -H \"Content-Type: application/x-www-form-urlencoded\")",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzM4MTI4MDUsInN1YiI6IjEiLCJ0eXBlIjoiYWNjZXNzIn0.U9tEoZNzhAjH4dXGz82vuEYxru1psfH10oqW7XGU8es\"\n\necho \"=== 获取分类列表 ===\"\ncurl -s -X GET http://localhost:8000/api/v1/categories \\\\\n  -H \"Authorization: Bearer $TOKEN\" | python3 -m json.tool)",
+      "Bash(pnpm build:*)",
+      "Bash(timeout 10 pnpm dev 2>&1 || true)",
+      "Bash(lsof -ti:3000 | head -5)",
+      "Bash(timeout 5 python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 2>&1 || true)",
+      "Bash(cd /Users/kkw/www/CrunchGoV2/backend && timeout 5 python3.12 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 2>&1 || true)",
+      "Bash(pyenv versions:*)",
+      "Bash(pyenv global:*)",
+      "Bash(pip install:*)",
+      "Bash(timeout 5 python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 2>&1 || true)",
+      "Bash(cd /Users/kkw/www/CrunchGoV2/web && rm -rf .next && pnpm build)",
+      "Bash(pnpm dev:*)"
+    ]
+  }
+}
