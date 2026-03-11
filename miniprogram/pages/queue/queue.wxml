@@ -1,0 +1,108 @@
+<view class="container">
+  <!-- Tab 切换 -->
+  <view class="tab-bar">
+    <view class="tab-item {{activeTab === 'my' ? 'active' : ''}}" bindtap="switchTab" data-tab="my">
+      <text>我的订单</text>
+    </view>
+    <view class="tab-item {{activeTab === 'all' ? 'active' : ''}}" bindtap="switchTab" data-tab="all">
+      <text>排队队列</text>
+    </view>
+  </view>
+
+  <!-- 我的订单 -->
+  <view wx:if="{{activeTab === 'my'}}" class="tab-content">
+    <view wx:if="{{myOrders.length > 0}}" class="order-list">
+      <view wx:for="{{myOrders}}" wx:key="id" class="order-card" bindtap="goToOrderDetail" data-id="{{item.id}}">
+        <view class="order-header">
+          <text class="order-number">订单号: {{item.order_number}}</text>
+          <text class="order-status {{item.status}}">{{statusText[item.status]}}</text>
+        </view>
+
+        <view class="pickup-code-section">
+          <text class="pickup-label">取餐码</text>
+          <text class="pickup-code">{{item.pickup_code}}</text>
+        </view>
+
+        <view class="order-items">
+          <view wx:for="{{item.items}}" wx:for-item="goods" wx:key="id" class="order-item">
+            <text class="item-name">{{goods.product_name}} x{{goods.quantity}}</text>
+          </view>
+        </view>
+
+        <view class="order-footer">
+          <text class="order-time">{{formatTime(item.created_at)}}</text>
+          <text class="order-total">¥{{item.totalAmountYuan}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view wx:else class="empty-state">
+      <image class="empty-icon" src="/images/empty-queue.png" mode="aspectFit"></image>
+      <text class="empty-text">暂无进行中的订单</text>
+      <button class="btn btn-primary" bindtap="goToMenu">去点餐</button>
+    </view>
+  </view>
+
+  <!-- 排队队列 -->
+  <view wx:if="{{activeTab === 'all'}}" class="tab-content">
+    <view class="queue-stats">
+      <view class="stat-item">
+        <text class="stat-num">{{queueData.pending.length}}</text>
+        <text class="stat-label">待制作</text>
+      </view>
+      <view class="stat-item">
+        <text class="stat-num">{{queueData.preparing.length}}</text>
+        <text class="stat-label">制作中</text>
+      </view>
+      <view class="stat-item">
+        <text class="stat-num">{{queueData.ready.length}}</text>
+        <text class="stat-label">待取餐</text>
+      </view>
+    </view>
+
+    <!-- 待取餐（优先显示） -->
+    <view wx:if="{{queueData.ready.length > 0}}" class="queue-section">
+      <view class="section-title ready">
+        <text>待取餐</text>
+        <text class="count">{{queueData.ready.length}}</text>
+      </view>
+      <view class="code-list">
+        <view wx:for="{{queueData.ready}}" wx:key="id" class="code-item ready" bindtap="goToOrderDetail" data-id="{{item.id}}">
+          <text class="code-number">{{item.pickup_code}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 制作中 -->
+    <view wx:if="{{queueData.preparing.length > 0}}" class="queue-section">
+      <view class="section-title preparing">
+        <text>制作中</text>
+        <text class="count">{{queueData.preparing.length}}</text>
+      </view>
+      <view class="code-list">
+        <view wx:for="{{queueData.preparing}}" wx:key="id" class="code-item preparing">
+          <text class="code-number">{{item.pickup_code}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 待制作 -->
+    <view wx:if="{{queueData.pending.length > 0}}" class="queue-section">
+      <view class="section-title pending">
+        <text>待制作</text>
+        <text class="count">{{queueData.pending.length}}</text>
+      </view>
+      <view class="code-list">
+        <view wx:for="{{queueData.pending}}" wx:key="id" class="code-item pending">
+          <text class="code-number">{{item.pickup_code}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{queueData.pending.length === 0 && queueData.preparing.length === 0 && queueData.ready.length === 0}}" class="empty-state">
+      <image class="empty-icon" src="/images/empty-queue.png" mode="aspectFit"></image>
+      <text class="empty-text">当前没有排队的订单</text>
+      <button class="btn btn-primary" bindtap="goToMenu">去点餐</button>
+    </view>
+  </view>
+</view>

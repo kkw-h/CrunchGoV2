@@ -36,7 +36,6 @@ def str_to_time(s: str):
 @router.get("/profile", response_model=MerchantProfile)
 async def get_profile(
     db: DBSession,
-    current_user: CurrentUser,
 ):
     """获取商家信息."""
     # 临时返回第一个商家，实际应该根据 current_user 获取
@@ -112,7 +111,6 @@ async def update_profile(
 @router.get("/settings", response_model=MerchantSettings)
 async def get_settings(
     db: DBSession,
-    current_user: CurrentUser,
 ):
     """获取商家设置 (排队规则等)."""
     result = await db.execute(select(Merchant).limit(1))
@@ -176,7 +174,6 @@ async def update_settings(
 @router.get("/wechat", response_model=WechatConfig)
 async def get_wechat_config(
     db: DBSession,
-    current_user: CurrentUser,
 ):
     """获取微信小程序配置."""
     result = await db.execute(select(Merchant).limit(1))

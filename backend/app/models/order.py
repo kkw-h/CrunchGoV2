@@ -19,6 +19,7 @@ from app.models.base import Base
 if TYPE_CHECKING:
     from app.models.order_item_option import OrderItemOption
     from app.models.product import Product
+    from app.models.user import User
 
 
 class OrderStatus(str, Enum):
@@ -50,6 +51,11 @@ class Order(Base):
     # 金额 (以分为单位)
     total_amount: Mapped[int] = mapped_column(Integer, nullable=False)
 
+    # 关联用户 (微信小程序端)
+    user_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("users.id"), nullable=True, index=True
+    )
+
     # 顾客信息 (微信小程序端)
     customer_name: Mapped[str | None] = mapped_column(String(50), nullable=True)
     customer_phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
@@ -68,6 +74,7 @@ class Order(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     # 关系
+    user: Mapped["User | None"] = relationship("User", back_populates="orders")
     items: Mapped[list["OrderItem"]] = relationship(
         "OrderItem", back_populates="order", cascade="all, delete-orphan"
     )

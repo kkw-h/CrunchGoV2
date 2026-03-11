@@ -23,7 +23,6 @@ router = APIRouter()
 @router.get("", response_model=CategoryListResponse)
 async def list_categories(
     db: DBSession,
-    current_user: CurrentUser,
 ):
     """获取分类列表."""
     result = await db.execute(
@@ -78,7 +77,6 @@ async def create_category(
 async def get_category(
     category_id: str,
     db: DBSession,
-    current_user: CurrentUser,
 ):
     """获取分类详情."""
     result = await db.execute(

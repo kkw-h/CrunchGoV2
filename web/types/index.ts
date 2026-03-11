@@ -111,6 +111,7 @@ export interface ProductUpdate {
   is_available?: boolean;
   sort_order?: number;
   category_id?: string | null;
+  options?: ProductOptionCreate[];
 }
 
 // ============ 订单选项相关 ============

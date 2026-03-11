@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import useSWR, { useSWRConfig } from "swr";
 import {
   fetchProducts,
@@ -21,6 +22,7 @@ function formatPrice(price: number): string {
 
 export default function ProductsPage() {
   const { mutate } = useSWRConfig();
+  const router = useRouter();
   const [queryParams, setQueryParams] = useState<ProductQueryParams>({
     skip: 0,
     limit: 20,
@@ -398,7 +400,8 @@ export default function ProductsPage() {
         product={editingProduct}
         categories={categories}
         onSuccess={() => {
-          mutate(["products", queryParams]);
+          mutate(["products", queryParams], undefined, { revalidate: true });
+          router.refresh();
           setIsProductModalOpen(false);
         }}
       />

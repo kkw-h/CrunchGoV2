@@ -94,7 +94,9 @@ export async function updateProduct(
   id: string,
   data: ProductUpdate
 ): Promise<Product> {
+  console.log('updateProduct called with:', JSON.stringify(data, null, 2));
   const response = await api.put<Product>(`/api/v1/products/${id}`, data);
+  console.log('updateProduct response:', response);
   if (response.error) {
     throw new Error(response.error);
   }

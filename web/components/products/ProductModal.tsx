@@ -93,7 +93,29 @@ export function ProductModal({
     setError(null);
 
     try {
-      const submitData = { ...formData, options };
+      // 构建提交数据，确保包含所有字段
+      const submitData = {
+        name: formData.name,
+        description: formData.description,
+        price: formData.price,
+        stock: formData.stock,
+        image_url: formData.image_url,
+        is_available: formData.is_available,
+        sort_order: formData.sort_order,
+        category_id: formData.category_id,
+        options: options.map(opt => ({
+          name: opt.name,
+          is_required: opt.is_required,
+          is_multiple: opt.is_multiple,
+          sort_order: opt.sort_order,
+          values: opt.values.map(v => ({
+            value: v.value,
+            extra_price: v.extra_price,
+            sort_order: v.sort_order,
+          })),
+        })),
+      };
+      console.log('Submitting product data:', submitData);
       if (isEditing && product) {
         await updateProduct(product.id, submitData);
       } else {
@@ -101,6 +123,7 @@ export function ProductModal({
       }
       onSuccess();
     } catch (err) {
+      console.error('Submit error:', err);
       setError(err instanceof Error ? err.message : "操作失败");
     } finally {
       setLoading(false);
@@ -140,30 +163,42 @@ export function ProductModal({
 
   // 添加选项值
   const addOptionValue = (optionIndex: number) => {
-    const newOptions = [...options];
-    newOptions[optionIndex].values.push({
-      value: "",
-      extra_price: 0,
-      sort_order: newOptions[optionIndex].values.length,
-    });
-    setOptions(newOptions);
+    setOptions(prev => prev.map((opt, i) => {
+      if (i !== optionIndex) return opt;
+      return {
+        ...opt,
+        values: [...opt.values, {
+          value: "",
+          extra_price: 0,
+          sort_order: opt.values.length,
+        }]
+      };
+    }));
   };
 
   // 更新选项值
   const updateOptionValue = (optionIndex: number, valueIndex: number, field: keyof ProductOptionValueCreate, value: unknown) => {
-    const newOptions = [...options];
-    newOptions[optionIndex].values[valueIndex] = {
-      ...newOptions[optionIndex].values[valueIndex],
-      [field]: value,
-    };
-    setOptions(newOptions);
+    setOptions(prev => prev.map((opt, i) => {
+      if (i !== optionIndex) return opt;
+      return {
+        ...opt,
+        values: opt.values.map((v, j) => {
+          if (j !== valueIndex) return v;
+          return { ...v, [field]: value };
+        })
+      };
+    }));
   };
 
   // 删除选项值
   const removeOptionValue = (optionIndex: number, valueIndex: number) => {
-    const newOptions = [...options];
-    newOptions[optionIndex].values = newOptions[optionIndex].values.filter((_, i) => i !== valueIndex);
-    setOptions(newOptions);
+    setOptions(prev => prev.map((opt, i) => {
+      if (i !== optionIndex) return opt;
+      return {
+        ...opt,
+        values: opt.values.filter((_, j) => j !== valueIndex)
+      };
+    }));
   };
 
   if (!isOpen) return null;

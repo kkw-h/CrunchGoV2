@@ -1,0 +1,90 @@
+<view class="container">
+  <!-- 用户信息卡片 -->
+  <view class="user-card">
+    <view wx:if="{{hasUserInfo}}" class="user-info">
+      <image class="avatar" src="{{userInfo.avatarUrl}}" mode="aspectFill"></image>
+      <view class="user-meta">
+        <text class="nickname">{{userInfo.nickName}}</text>
+        <text class="phone">138****8888</text>
+      </view>
+    </view>
+    <view wx:else class="user-info" bindtap="getUserProfile">
+      <view class="avatar-placeholder">
+        <text>点击登录</text>
+      </view>
+      <view class="user-meta">
+        <text class="nickname">点击登录</text>
+        <text class="hint">登录后享受更多功能</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 订单统计 -->
+  <view class="stats-card">
+    <view class="stats-row">
+      <view class="stat-item" bindtap="goToOrders">
+        <text class="stat-num">{{orderStats.pending}}</text>
+        <text class="stat-label">待制作</text>
+      </view>
+      <view class="stat-item" bindtap="goToOrders">
+        <text class="stat-num">{{orderStats.preparing}}</text>
+        <text class="stat-label">制作中</text>
+      </view>
+      <view class="stat-item" bindtap="goToOrders">
+        <text class="stat-num">{{orderStats.ready}}</text>
+        <text class="stat-label">待取餐</text>
+      </view>
+      <view class="stat-item" bindtap="goToOrders">
+        <text class="stat-num">全部</text>
+        <text class="stat-label">订单</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 最近订单 -->
+  <view wx:if="{{recentOrders.length > 0}}" class="section">
+    <view class="section-header">
+      <text class="section-title">最近订单</text>
+      <text class="more" bindtap="goToOrders">查看全部 ></text>
+    </view>
+    <view class="order-list">
+      <view wx:for="{{recentOrders}}" wx:key="id" class="order-item" bindtap="goToOrderDetail" data-id="{{item.id}}">
+        <view class="order-top">
+          <text class="order-code">取餐码: {{item.pickup_code}}</text>
+          <text class="order-status {{item.status}}">{{item.status === 'pending' ? '待制作' : item.status === 'preparing' ? '制作中' : '待取餐'}}</text>
+        </view>
+        <view class="order-goods">
+          <text wx:for="{{item.items}}" wx:for-item="goods" wx:key="id">{{goods.product_name}}</text>
+        </view>
+        <view class="order-bottom">
+          <text class="order-time">{{formatTime(item.created_at)}}</text>
+          <text class="order-price">¥{{item.totalAmountYuan}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 功能菜单 -->
+  <view class="menu-section">
+    <view class="menu-item" bindtap="goToOrders">
+      <image class="menu-icon" src="/images/icon-order.png"></image>
+      <text class="menu-text">全部订单</text>
+      <text class="arrow">></text>
+    </view>
+    <view class="menu-item" bindtap="viewMerchant">
+      <image class="menu-icon" src="/images/icon-shop.png"></image>
+      <text class="menu-text">商家信息</text>
+      <text class="arrow">></text>
+    </view>
+    <view class="menu-item" bindtap="contactService">
+      <image class="menu-icon" src="/images/icon-service.png"></image>
+      <text class="menu-text">联系客服</text>
+      <text class="arrow">></text>
+    </view>
+    <view wx:if="{{hasUserInfo}}" class="menu-item" bindtap="logout">
+      <image class="menu-icon" src="/images/icon-logout.png"></image>
+      <text class="menu-text">退出登录</text>
+      <text class="arrow">></text>
+    </view>
+  </view>
+</view>

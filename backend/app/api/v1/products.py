@@ -81,7 +81,6 @@ def build_product_response(product: Product) -> ProductResponse:
 @router.get("", response_model=ProductListResponse)
 async def list_products(
     db: DBSession,
-    current_user: CurrentUser,
     category_id: str | None = Query(None, description="分类ID"),
     is_available: bool | None = Query(None, description="是否上架"),
     keyword: str | None = Query(None, description="搜索关键词"),
@@ -202,7 +201,6 @@ async def create_product(
 async def get_product(
     product_id: str,
     db: DBSession,
-    current_user: CurrentUser,
 ):
     """获取商品详情."""
     result = await db.execute(
@@ -234,7 +232,7 @@ async def update_product(
     """更新商品."""
     result = await db.execute(
         select(Product)
-        .options(selectinload(Product.category))
+        .options(selectinload(Product.category), selectinload(Product.options).selectinload(ProductOption.values))
         .where(Product.id == product_id)
     )
     product = result.scalar_one_or_none()
@@ -258,11 +256,45 @@ async def update_product(
                 detail="分类不存在",
             )
 
+    # 处理选项更新
+    if "options" in update_data:
+        new_options = update_data.pop("options")
+        # 删除旧选项（级联删除选项值）
+        for old_opt in product.options:
+            await db.delete(old_opt)
+        await db.flush()
+
+        # 创建新选项
+        for opt_data in new_options:
+            option = ProductOption(
+                id=str(uuid.uuid4()),
+                product_id=product.id,
+                name=opt_data["name"],
+                is_required=opt_data.get("is_required", False),
+                is_multiple=opt_data.get("is_multiple", False),
+                sort_order=opt_data.get("sort_order", 0),
+                created_at=datetime.utcnow(),
+            )
+            db.add(option)
+            await db.flush()
+
+            # 创建选项值
+            for val_data in opt_data.get("values", []):
+                value = ProductOptionValue(
+                    id=str(uuid.uuid4()),
+                    option_id=option.id,
+                    value=val_data["value"],
+                    extra_price=val_data.get("extra_price", 0),
+                    sort_order=val_data.get("sort_order", 0),
+                    created_at=datetime.utcnow(),
+                )
+                db.add(value)
+
+    # 更新其他字段
     for key, value in update_data.items():
         setattr(product, key, value)
 
     await db.commit()
-    await db.refresh(product)
 
     # 重新加载完整数据（包含选项）
     result = await db.execute(

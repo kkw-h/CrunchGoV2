@@ -54,6 +54,7 @@ async def init_db() -> None:
     from app.models.order_item_option import OrderItemOption  # noqa: F401
     from app.models.product import Product  # noqa: F401
     from app.models.product_option import ProductOption, ProductOptionValue  # noqa: F401
+    from app.models.user import User  # noqa: F401
 
     try:
         async with engine.begin() as conn:

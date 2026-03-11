@@ -113,6 +113,7 @@ class ProductUpdate(BaseModel):
     is_available: bool | None = Field(None, description="是否上架")
     sort_order: int | None = Field(None, ge=0, description="排序顺序")
     category_id: str | None = Field(None, description="分类ID")
+    options: list[ProductOptionCreate] | None = Field(None, description="商品选项")
 
     @field_validator("price")
     @classmethod

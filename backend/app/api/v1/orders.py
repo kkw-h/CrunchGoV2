@@ -8,7 +8,7 @@ from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.api.deps import CurrentUser, DBSession
+from app.api.deps import CurrentMerchant, CurrentUser, CurrentUserOptional, DBSession
 from app.core.pickup_code import PickupCodeService
 from app.core.websocket import notify_order_update, notify_queue_update
 from app.models.merchant import Merchant
@@ -16,6 +16,7 @@ from app.models.order import Order, OrderItem, OrderStatus
 from app.models.order_item_option import OrderItemOption
 from app.models.product import Product
 from app.models.product_option import ProductOption, ProductOptionValue
+from app.models.user import User
 from app.schemas import (
     OrderCreate,
     OrderItemOptionCreate,
@@ -97,7 +98,11 @@ async def list_orders(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
-    """获取订单列表."""
+    """获取订单列表.
+
+    - 微信用户：只能看到自己的订单
+    - 商家：可以看到所有订单
+    """
     skip = (page - 1) * page_size
 
     # 构建查询条件
@@ -105,6 +110,11 @@ async def list_orders(
     count_query = select(func.count(Order.id))
 
     filters = []
+
+    # 如果是微信用户，只能看到自己的订单
+    if isinstance(current_user, User):
+        filters.append(Order.user_id == current_user.id)
+
     if status:
         filters.append(Order.status == status)
     if pickup_code:
@@ -148,7 +158,6 @@ async def list_orders(
 @router.get("/queue", response_model=QueueResponse)
 async def get_queue(
     db: DBSession,
-    current_user: CurrentUser,
     limit: int = Query(20, ge=1, le=50),
 ):
     """获取排队队列 (待制作、制作中、待取餐)."""
@@ -190,11 +199,18 @@ async def get_queue(
 async def create_order(
     data: OrderCreate,
     db: DBSession,
-    current_user: CurrentUser,
+    current_user: CurrentUserOptional,
 ):
     """创建订单."""
-    # TODO: 从认证信息获取当前商家ID
-    # 临时使用第一个商家或创建默认商家
+    # 检查用户是否登录（微信用户必须登录才能下单）
+    if current_user is None or not isinstance(current_user, User):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="请先登录后再下单",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # 获取商家
     merchant_result = await db.execute(select(Merchant).limit(1))
     merchant = merchant_result.scalar_one_or_none()
 
@@ -320,8 +336,10 @@ async def create_order(
         pickup_code=pickup_code,
         status=OrderStatus.PENDING,
         total_amount=total_amount,
+        user_id=current_user.id,
         customer_name=data.customer_name,
         customer_phone=data.customer_phone,
+        customer_openid=current_user.openid,
         note=data.note,
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow(),

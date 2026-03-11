@@ -10,6 +10,10 @@ from app.api.v1.ws import router as ws_router
 from app.config import settings
 from app.models.base import init_db
 
+# 导入所有模型以确保 SQLAlchemy 正确注册关系映射
+# noqa: F401 - 导入是为了注册模型，不是直接使用
+from app.models import category, merchant, order, order_item_option, product, product_option, user
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

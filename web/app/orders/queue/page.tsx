@@ -56,14 +56,16 @@ export default function QueuePage() {
   const [showTestModal, setShowTestModal] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectAttempts = useRef(0);
 
   // 获取队列数据
   const { data: queueData, error, isLoading } = useSWR(
     "queue",
     fetchQueue,
     {
-      refreshInterval: useWebSocket ? 0 : 5000, // 使用 WebSocket 时禁用轮询
-      revalidateOnFocus: !useWebSocket,
+      refreshInterval: useWebSocket && wsStatus === "connected" ? 0 : 5000, // WebSocket 连接成功时禁用轮询，否则使用轮询
+      revalidateOnFocus: true, // 总是启用焦点重新验证
+      refreshWhenHidden: false,
     }
   );
 
@@ -87,6 +89,7 @@ export default function QueuePage() {
 
     ws.onopen = () => {
       setWsStatus("connected");
+      reconnectAttempts.current = 0; // 重置重连次数
       console.log("WebSocket 已连接");
       // 发送心跳
       const heartbeat = setInterval(() => {
@@ -118,8 +121,9 @@ export default function QueuePage() {
       // 清理心跳
       const hb = (ws as unknown as { heartbeat?: NodeJS.Timeout }).heartbeat;
       if (hb) clearInterval(hb);
-      // 自动重连
-      if (useWebSocket) {
+      // 自动重连（最多重试5次）
+      if (useWebSocket && reconnectAttempts.current < 5) {
+        reconnectAttempts.current++;
         reconnectTimeoutRef.current = setTimeout(connectWebSocket, 3000);
       }
     };
@@ -290,6 +294,24 @@ export default function QueuePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
           <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
             加载失败: {error.message}
+          </div>
+        </div>
+      )}
+
+      {/* WebSocket 断开提示 */}
+      {useWebSocket && wsStatus === "disconnected" && !error && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
+          <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-2 rounded-lg text-sm flex items-center justify-between">
+            <span>实时连接已断开，正在使用轮询模式（每5秒刷新）</span>
+            <button
+              onClick={() => {
+                reconnectAttempts.current = 0;
+                connectWebSocket();
+              }}
+              className="text-blue-600 hover:text-blue-800 font-medium"
+            >
+              重新连接
+            </button>
           </div>
         </div>
       )}
