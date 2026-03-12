@@ -12,12 +12,13 @@ from app.api.deps import CurrentMerchant, CurrentUser, CurrentUserOptional, DBSe
 from app.core.pickup_code import PickupCodeService
 from app.core.websocket import notify_order_update, notify_queue_update
 from app.models.merchant import Merchant
-from app.models.order import Order, OrderItem, OrderStatus
+from app.models.order import Order, OrderItem, OrderSource, OrderStatus
 from app.models.order_item_option import OrderItemOption
 from app.models.product import Product
 from app.models.product_option import ProductOption, ProductOptionValue
 from app.models.user import User
 from app.schemas import (
+    MerchantOrderCreate,
     OrderCreate,
     OrderItemOptionCreate,
     OrderItemOptionResponse,
@@ -81,6 +82,7 @@ def build_order_response(order: Order) -> OrderResponse:
         customer_phone=order.customer_phone,
         note=order.note,
         items=items,
+        source_type=order.source_type,
         created_at=order.created_at,
         updated_at=order.updated_at,
         completed_at=order.completed_at,
@@ -390,6 +392,161 @@ async def create_order(
     response = build_order_response(order)
 
     # WebSocket 广播新订单和队列更新
+    await notify_order_update(response.model_dump())
+    await _broadcast_queue_update(db)
+
+    return response
+
+
+@router.post("/merchant-create", response_model=OrderResponse, status_code=status.HTTP_201_CREATED)
+async def create_order_by_merchant(
+    data: MerchantOrderCreate,
+    db: DBSession,
+    current_merchant: CurrentMerchant,
+):
+    """商家代客户创建订单.
+
+    - 商家可以直接为客户下单
+    - 可以自定义取餐码（如果提供）
+    - 不验证库存（商家下单允许超售）
+    - 订单来源标记为 merchant
+    """
+    # 使用自定义取餐码或生成新的
+    if data.pickup_code:
+        # 验证取餐码是否已存在
+        existing_result = await db.execute(
+            select(Order).where(
+                Order.pickup_code == data.pickup_code,
+                Order.status.in_([OrderStatus.PENDING, OrderStatus.PREPARING, OrderStatus.READY])
+            )
+        )
+        if existing_result.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"取餐码 {data.pickup_code} 已被使用",
+            )
+        pickup_code = data.pickup_code
+    else:
+        # 生成取餐码
+        pickup_code, _ = await PickupCodeService.generate_pickup_code(db, current_merchant.id)
+
+    # 计算总价
+    total_amount = 0
+    order_items_data = []
+
+    for item_data in data.items:
+        # 查询商品
+        product_result = await db.execute(
+            select(Product)
+            .options(selectinload(Product.options).selectinload(ProductOption.values))
+            .where(Product.id == item_data.product_id)
+        )
+        product = product_result.scalar_one_or_none()
+
+        if product is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"商品不存在: {item_data.product_id}",
+            )
+
+        # 验证选项并计算额外价格
+        options_extra_price = 0
+        selected_options_data = []
+
+        # 构建选项映射用于验证
+        option_map = {opt.id: opt for opt in product.options}
+        option_value_map = {}
+        for opt in product.options:
+            for val in opt.values:
+                option_value_map[(opt.id, val.id)] = val
+
+        # 验证每个选项
+        for opt_selection in item_data.options:
+            option_id = opt_selection.option_id
+            value_id = opt_selection.value_id
+
+            if option_id in option_map and (option_id, value_id) in option_value_map:
+                option = option_map[option_id]
+                option_value = option_value_map[(option_id, value_id)]
+                options_extra_price += option_value.extra_price
+                selected_options_data.append({
+                    "option_name": option.name,
+                    "option_value": option_value.value,
+                    "extra_price": option_value.extra_price,
+                })
+
+        # 计算小计
+        item_unit_price = product.price + options_extra_price
+        subtotal = item_unit_price * item_data.quantity
+        total_amount += subtotal
+
+        # 记录订单项数据
+        order_items_data.append({
+            "product_id": product.id,
+            "product_name": product.name,
+            "product_price": product.price,
+            "quantity": item_data.quantity,
+            "selected_options": selected_options_data,
+        })
+
+    # 创建订单
+    order = Order(
+        id=str(uuid.uuid4()),
+        order_number=generate_order_number(),
+        pickup_code=pickup_code,
+        status=OrderStatus.PENDING,
+        total_amount=total_amount,
+        user_id=None,  # 商家代下单没有关联用户
+        customer_name=data.customer_name,
+        customer_phone=data.customer_phone,
+        customer_openid=None,
+        note=data.note,
+        source_type=OrderSource.MERCHANT,
+        merchant_operator_id=current_merchant.id,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
+    )
+
+    db.add(order)
+    await db.flush()
+
+    # 创建订单项
+    for item_data in order_items_data:
+        order_item = OrderItem(
+            id=str(uuid.uuid4()),
+            order_id=order.id,
+            product_id=item_data["product_id"],
+            product_name=item_data["product_name"],
+            product_price=item_data["product_price"],
+            quantity=item_data["quantity"],
+        )
+        db.add(order_item)
+        await db.flush()
+
+        # 创建订单项选项快照
+        for opt_data in item_data["selected_options"]:
+            order_item_option = OrderItemOption(
+                id=str(uuid.uuid4()),
+                order_item_id=order_item.id,
+                option_name=opt_data["option_name"],
+                option_value=opt_data["option_value"],
+                extra_price=opt_data["extra_price"],
+            )
+            db.add(order_item_option)
+
+    await db.commit()
+
+    # 重新加载订单
+    result = await db.execute(
+        select(Order)
+        .options(selectinload(Order.items).selectinload(OrderItem.selected_options))
+        .where(Order.id == order.id)
+    )
+    order = result.scalar_one()
+
+    response = build_order_response(order)
+
+    # WebSocket 广播
     await notify_order_update(response.model_dump())
     await _broadcast_queue_update(db)
 

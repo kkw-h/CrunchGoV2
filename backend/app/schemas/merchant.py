@@ -20,6 +20,8 @@ class MerchantProfile(BaseModel):
     address: str | None = Field(None, description="店铺地址")
     phone: str | None = Field(None, description="联系电话")
     business_hours: BusinessHours = Field(..., description="营业时间")
+    business_hours_text: str = Field(..., description="营业时间字符串")
+    is_open: bool = Field(..., description="是否营业中")
     created_at: str
     updated_at: str
 

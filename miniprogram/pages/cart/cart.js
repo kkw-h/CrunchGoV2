@@ -6,8 +6,6 @@ Page({
   data: {
     cart: [],
     remark: '',
-    customerName: '',
-    customerPhone: '',
     submitting: false,
     merchantInfo: null,
     merchantSettings: null,
@@ -31,7 +29,6 @@ Page({
     this.loadCart()
     this.loadMerchantInfo()
     this.loadMerchantSettings()
-    this.loadUserInfo()
   },
 
   onShow() {
@@ -84,19 +81,6 @@ Page({
       console.error('Load merchant settings failed:', err)
     }
   },
-
-  // 加载用户信息
-  loadUserInfo() {
-    const userInfo = wx.getStorageSync('user_info')
-    if (userInfo) {
-      // 优先使用 nickname（后端存储），其次是 nickName（微信原始）
-      const name = userInfo.nickname || userInfo.nickName || ''
-      this.setData({
-        customerName: name
-      })
-    }
-  },
-
 
   // 减少数量
   decreaseQuantity(e) {
@@ -203,29 +187,6 @@ Page({
     })
   },
 
-  // 姓名输入
-  onNameInput(e) {
-    this.setData({ customerName: e.detail.value })
-  },
-
-  // 手机号输入
-  onPhoneInput(e) {
-    this.setData({ customerPhone: e.detail.value })
-  },
-
-  // 获取微信手机号
-  getPhoneNumber(e) {
-    if (e.detail.errMsg === 'getPhoneNumber:ok') {
-      // TODO: 调用后端解密手机号
-      // 临时使用 code
-      console.log('Phone code:', e.detail.code)
-      wx.showToast({
-        title: '获取成功',
-        icon: 'success'
-      })
-    }
-  },
-
   // 检查登录状态，未登录则提示
   async checkLogin() {
     if (auth.isLoggedIn()) {
@@ -276,11 +237,6 @@ Page({
       return
     }
 
-    if (!this.data.customerName.trim()) {
-      showError('请输入姓名')
-      return
-    }
-
     // 检查登录状态
     const isLoggedIn = await this.checkLogin()
     if (!isLoggedIn) {
@@ -291,10 +247,14 @@ Page({
     showLoading('提交中...')
 
     try {
+      // 获取用户信息用于订单
+      const userInfo = wx.getStorageSync('user_info') || {}
+      const customerName = userInfo.nickname || userInfo.nickName || '微信用户'
+
       // 构建订单数据
       const orderData = {
-        customer_name: this.data.customerName.trim(),
-        customer_phone: this.data.customerPhone.trim(),
+        customer_name: customerName,
+        customer_phone: '',
         note: this.data.remark.trim(),
         items: this.data.cart.map(item => ({
           product_id: item.id,

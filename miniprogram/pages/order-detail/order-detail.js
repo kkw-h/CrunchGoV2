@@ -53,9 +53,19 @@ Page({
     try {
       const res = await api.orders.detail(id)
       // 格式化价格
+      // 格式化日期
+      const createdAt = res.created_at || ''
+      const orderDateStr = createdAt ? createdAt.substring(0, 10) : ''
+      const formattedDateTime = formatDateTime(createdAt)
+
+      console.log('Order created_at:', createdAt)
+      console.log('Formatted date time:', formattedDateTime)
+
       const orderWithFormattedPrice = {
         ...res,
         totalAmountYuan: this._formatPrice(res.total_amount),
+        orderDateStr: orderDateStr,
+        formattedCreatedAt: formattedDateTime,
         items: (res.items || []).map(item => ({
           ...item,
           productPriceYuan: this._formatPrice(item.product_price)
@@ -144,6 +154,19 @@ Page({
       longitude: 116.4074,
       name: '美味小厨',
       address: '北京市朝阳区美食街88号'
+    })
+  },
+
+  // 复制订单号
+  copyOrderNumber() {
+    wx.setClipboardData({
+      data: this.data.order.order_number,
+      success: () => {
+        wx.showToast({
+          title: '已复制',
+          icon: 'success'
+        })
+      }
     })
   }
 })

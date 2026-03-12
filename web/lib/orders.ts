@@ -6,6 +6,7 @@ import {
   OrderStatus,
   OrderUpdate,
   QueueResponse,
+  MerchantOrderCreate,
 } from "@/types";
 
 // ============ 订单 API ============
@@ -54,6 +55,14 @@ export async function fetchOrder(id: string): Promise<Order> {
 
 export async function createOrder(data: OrderCreate): Promise<Order> {
   const response = await api.post<Order>("/api/v1/orders", data);
+  if (response.error) {
+    throw new Error(response.error);
+  }
+  return response.data!;
+}
+
+export async function createMerchantOrder(data: MerchantOrderCreate): Promise<Order> {
+  const response = await api.post<Order>("/api/v1/orders/merchant-create", data);
   if (response.error) {
     throw new Error(response.error);
   }

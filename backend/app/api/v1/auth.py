@@ -44,8 +44,9 @@ async def get_wechat_session(code: str) -> dict:
 
     if not app_id or not app_secret:
         # 开发环境返回模拟数据
+        # 使用固定 openid 避免每次创建新用户，如需测试多用户可临时修改此处
         return {
-            "openid": f"mock_openid_{code}",
+            "openid": "mock_openid_development_user",
             "session_key": "mock_session_key",
         }
 

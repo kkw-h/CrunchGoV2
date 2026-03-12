@@ -63,7 +63,8 @@
       "Bash(sleep 3 && curl -s http://localhost:8000/api/v1/categories)",
       "Bash(curl -s http://localhost:8000/api/v1/categories | python -m json.tool 2>/dev/null || curl -s http://localhost:8000/api/v1/categories)",
       "Bash(curl -s http://localhost:8000/api/v1/merchant/settings | python -m json.tool)",
-      "Bash(curl -s http://localhost:8000/health)"
+      "Bash(curl -s http://localhost:8000/health)",
+      "Bash(curl -s http://localhost:8000/api/v1/orders/1 2>/dev/null | head -50)"
     ]
   }
 }

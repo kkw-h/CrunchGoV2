@@ -13,8 +13,8 @@
         <view class="merchant-icon">🏪</view>
         <view class="merchant-info">
           <text class="merchant-name">{{merchantInfo.name || 'CrunchGo'}}</text>
-          <text class="merchant-status" wx:if="{{merchantInfo.business_hours}}">
-            {{merchantInfo.is_open ? '营业中' : '休息中'}} · {{merchantInfo.business_hours}}
+          <text class="merchant-status" wx:if="{{merchantInfo.business_hours_text}}">
+            {{merchantInfo.is_open ? '营业中' : '休息中'}} · {{merchantInfo.business_hours_text}}
           </text>
         </view>
       </view>
@@ -34,9 +34,11 @@
             <view class="item-main">
               <text class="item-name">{{item.name}}</text>
               <view wx:if="{{item.selectedOptions.length > 0}}" class="item-options">
-                <text wx:for="{{item.selectedOptions}}" wx:for-item="opt" wx:key="option_id" class="option-tag">
-                  {{opt.option_name}}: {{opt.option_value}}
-                </text>
+                <view wx:for="{{item.selectedOptions}}" wx:for-item="opt" wx:key="option_id" class="option-chip">
+                  <text class="option-name">{{opt.option_name}}</text>
+                  <text class="option-dot">·</text>
+                  <text class="option-value">{{opt.option_value}}</text>
+                </view>
               </view>
             </view>
             <view class="item-bottom">
@@ -72,36 +74,6 @@
         <view class="summary-row total">
           <text>合计</text>
           <text class="total-amount">¥{{totalPriceYuan}}</text>
-        </view>
-      </view>
-    </view>
-
-    <!-- 联系信息卡片 -->
-    <view class="section-card">
-      <view class="card-header">
-        <text class="card-title">👤 联系信息</text>
-      </view>
-      <view class="form-section">
-        <view class="form-item">
-          <text class="label required">取餐人</text>
-          <input
-            type="text"
-            placeholder="请输入您的姓名"
-            value="{{customerName}}"
-            bindinput="onNameInput"
-          />
-        </view>
-        <view class="form-item">
-          <text class="label">手机号</text>
-          <input
-            type="number"
-            placeholder="请输入手机号"
-            value="{{customerPhone}}"
-            bindinput="onPhoneInput"
-          />
-          <button class="btn-wechat" open-type="getPhoneNumber" bindgetphonenumber="getPhoneNumber">
-            一键获取
-          </button>
         </view>
       </view>
     </view>
@@ -152,11 +124,16 @@
       <text class="price-detail" bindtap="togglePriceDetail">明细 ></text>
     </view>
     <button
-      class="btn-submit {{submitting || cart.length === 0 ? 'disabled' : ''}}"
+      class="btn-submit {{submitting || cart.length === 0 || !merchantInfo.is_open ? 'disabled' : ''}}"
       bindtap="submitOrder"
-      disabled="{{submitting || cart.length === 0}}"
+      disabled="{{submitting || cart.length === 0 || !merchantInfo.is_open}}"
     >
-      {{submitting ? '提交中...' : (cart.length === 0 ? '购物车为空' : '提交订单')}}
+      {{submitting ? '提交中...' : (cart.length === 0 ? '购物车为空' : (!merchantInfo.is_open ? '商家休息中' : '提交订单'))}}
     </button>
+  </view>
+
+  <!-- 商家休息提示 -->
+  <view wx:if="{{merchantInfo && !merchantInfo.is_open && !isLoading}}" class="rest-notice">
+    <text class="rest-notice-text">⚠️ 商家当前休息中，您可以先浏览商品，营业后再来下单~</text>
   </view>
 </view>

@@ -27,6 +27,26 @@ def time_to_str(t) -> str:
     return t.strftime("%H:%M") if t else "09:00"
 
 
+def is_business_open(open_time, close_time) -> bool:
+    """判断当前是否营业时间."""
+    from datetime import datetime, time as dt_time
+
+    now = datetime.now()
+    current_time = now.time()
+
+    # 默认营业时间
+    open_t = open_time or dt_time(9, 0)
+    close_t = close_time or dt_time(21, 0)
+
+    # 处理跨午夜的情况（如营业到次日凌晨）
+    if close_t < open_t:
+        # 跨午夜营业
+        return current_time >= open_t or current_time <= close_t
+    else:
+        # 正常营业时间
+        return open_t <= current_time <= close_t
+
+
 def str_to_time(s: str):
     """字符串转为时间."""
     from datetime import time as dt_time
@@ -51,15 +71,20 @@ async def get_profile(
             detail="商家不存在",
         )
 
+    open_time = merchant.business_hours_open
+    close_time = merchant.business_hours_close
+
     return MerchantProfile(
         id=merchant.id,
         name=merchant.name,
         address=merchant.address,
         phone=merchant.phone,
         business_hours={
-            "open": time_to_str(merchant.business_hours_open),
-            "close": time_to_str(merchant.business_hours_close),
+            "open": time_to_str(open_time),
+            "close": time_to_str(close_time),
         },
+        business_hours_text=f"{time_to_str(open_time)}-{time_to_str(close_time)}",
+        is_open=is_business_open(open_time, close_time),
         created_at=merchant.created_at.isoformat(),
         updated_at=merchant.updated_at.isoformat(),
     )
@@ -97,15 +122,20 @@ async def update_profile(
     await db.commit()
     await db.refresh(merchant)
 
+    open_time = merchant.business_hours_open
+    close_time = merchant.business_hours_close
+
     return MerchantProfile(
         id=merchant.id,
         name=merchant.name,
         address=merchant.address,
         phone=merchant.phone,
         business_hours={
-            "open": time_to_str(merchant.business_hours_open),
-            "close": time_to_str(merchant.business_hours_close),
+            "open": time_to_str(open_time),
+            "close": time_to_str(close_time),
         },
+        business_hours_text=f"{time_to_str(open_time)}-{time_to_str(close_time)}",
+        is_open=is_business_open(open_time, close_time),
         created_at=merchant.created_at.isoformat(),
         updated_at=merchant.updated_at.isoformat(),
     )

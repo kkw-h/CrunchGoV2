@@ -153,16 +153,34 @@ page {
 .item-options {
   display: flex;
   flex-wrap: wrap;
-  gap: 8rpx;
-  margin-top: 12rpx;
+  gap: 12rpx;
+  margin-top: 16rpx;
 }
 
-.option-tag {
+.option-chip {
+  display: inline-flex;
+  align-items: center;
+  background: linear-gradient(135deg, #fff5f0 0%, #fff 100%);
+  border: 1rpx solid #ffd9c7;
+  padding: 8rpx 16rpx;
+  border-radius: 20rpx;
+}
+
+.option-name {
   font-size: 22rpx;
-  color: #666;
-  background: #f7f8fa;
-  padding: 6rpx 14rpx;
-  border-radius: 8rpx;
+  color: #999;
+}
+
+.option-dot {
+  font-size: 20rpx;
+  color: #ffaa80;
+  margin: 0 8rpx;
+}
+
+.option-value {
+  font-size: 22rpx;
+  color: #ff6600;
+  font-weight: 500;
 }
 
 .item-bottom {
@@ -403,7 +421,27 @@ page {
 
 /* 底部占位 */
 .bottom-spacer {
-  height: 40rpx;
+  height: 180rpx;
+}
+
+/* 商家休息提示 */
+.rest-notice {
+  position: fixed;
+  bottom: calc(120rpx + constant(safe-area-inset-bottom));
+  bottom: calc(120rpx + env(safe-area-inset-bottom));
+  left: 20rpx;
+  right: 20rpx;
+  background: #fff7e6;
+  border: 1rpx solid #ffd591;
+  border-radius: 12rpx;
+  padding: 16rpx 24rpx;
+  z-index: 99;
+}
+
+.rest-notice-text {
+  font-size: 26rpx;
+  color: #fa8c16;
+  line-height: 1.5;
 }
 
 /* 底部结算栏 */
@@ -427,6 +465,7 @@ page {
 .price-section {
   display: flex;
   flex-direction: column;
+  flex: 1;
 }
 
 .price-main {
@@ -435,13 +474,13 @@ page {
 }
 
 .total-label {
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: #666;
-  margin-right: 8rpx;
+  margin-right: 12rpx;
 }
 
 .total-price {
-  font-size: 44rpx;
+  font-size: 48rpx;
   font-weight: bold;
   color: #ff6600;
 }
@@ -449,29 +488,29 @@ page {
 .price-detail {
   font-size: 24rpx;
   color: #999;
-  margin-top: 4rpx;
+  margin-top: 6rpx;
 }
 
 .btn-submit {
-  min-width: 220rpx;
-  height: 80rpx;
-  line-height: 80rpx;
+  min-width: 280rpx;
+  height: 88rpx;
+  line-height: 88rpx;
   background: linear-gradient(135deg, #ff6600 0%, #ff8533 100%);
   color: #fff;
-  border-radius: 40rpx;
-  font-size: 30rpx;
+  border-radius: 44rpx;
+  font-size: 32rpx;
   font-weight: bold;
   text-align: center;
   border: none;
-  padding: 0 40rpx;
-  box-shadow: 0 8rpx 20rpx rgba(255, 102, 0, 0.3);
+  padding: 0 48rpx;
+  box-shadow: 0 8rpx 24rpx rgba(255, 102, 0, 0.35);
   transition: all 0.2s;
 }
 
 .btn-submit.disabled {
-  background: #ddd;
+  background: #e0e0e0;
   box-shadow: none;
-  color: #fff;
+  color: #999;
 }
 
 .btn-submit::after {

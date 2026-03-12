@@ -32,6 +32,13 @@ class OrderStatus(str, Enum):
     CANCELLED = "cancelled"  # 已取消
 
 
+class OrderSource(str, Enum):
+    """订单来源枚举."""
+
+    CUSTOMER = "customer"  # 客户小程序下单
+    MERCHANT = "merchant"  # 商家后台代下单
+
+
 class Order(Base):
     """订单模型."""
 
@@ -63,6 +70,16 @@ class Order(Base):
 
     # 订单备注
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # 订单来源 (customer=客户下单, merchant=商家代下单)
+    source_type: Mapped[str] = mapped_column(
+        String(20), default="customer", nullable=False
+    )
+
+    # 商家操作人 (商家代下单时记录)
+    merchant_operator_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("merchants.id"), nullable=True
+    )
 
     # 时间戳
     created_at: Mapped[datetime] = mapped_column(

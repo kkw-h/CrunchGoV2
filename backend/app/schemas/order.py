@@ -16,6 +16,13 @@ class OrderStatus(str, Enum):
     CANCELLED = "cancelled"  # 已取消
 
 
+class OrderSource(str, Enum):
+    """订单来源."""
+
+    CUSTOMER = "customer"  # 客户小程序下单
+    MERCHANT = "merchant"  # 商家后台代下单
+
+
 class OrderItemOptionResponse(BaseModel):
     """订单项选项响应 schema."""
 
@@ -76,9 +83,24 @@ class OrderBase(BaseModel):
 
 
 class OrderCreate(OrderBase):
-    """创建订单 schema."""
+    """创建订单 schema (客户小程序下单)."""
 
     items: list[OrderItemCreate] = Field(..., min_length=1, description="订单项")
+
+    @field_validator("items")
+    @classmethod
+    def validate_items(cls, v: list[OrderItemCreate]) -> list[OrderItemCreate]:
+        """验证订单项不为空."""
+        if not v:
+            raise ValueError("订单至少需要一件商品")
+        return v
+
+
+class MerchantOrderCreate(OrderBase):
+    """商家代创建订单 schema."""
+
+    items: list[OrderItemCreate] = Field(..., min_length=1, description="订单项")
+    pickup_code: str | None = Field(None, description="自定义取餐码（可选）")
 
     @field_validator("items")
     @classmethod
@@ -112,6 +134,7 @@ class OrderResponse(OrderBase):
     status: OrderStatus
     total_amount: int  # 分
     items: list[OrderItemResponse]
+    source_type: OrderSource = Field(default=OrderSource.CUSTOMER, description="订单来源")
     created_at: datetime
     updated_at: datetime
     completed_at: datetime | None

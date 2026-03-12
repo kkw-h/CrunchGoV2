@@ -29,13 +29,44 @@ function formatPrice(price) {
  * @returns {string} 格式化后的日期
  */
 function formatDateTime(dateStr) {
-  if (!dateStr) return ''
-  const date = new Date(dateStr)
+  if (!dateStr) {
+    console.warn('formatDateTime: empty dateStr')
+    return ''
+  }
+
+  // 处理 ISO 8601 格式 (2026-03-11T08:48:10.615676)
+  let normalizedStr = dateStr
+
+  // 如果有 T，替换为空格
+  if (normalizedStr.includes('T')) {
+    normalizedStr = normalizedStr.replace('T', ' ')
+  }
+
+  // 如果有微秒部分，去掉
+  if (normalizedStr.includes('.')) {
+    normalizedStr = normalizedStr.split('.')[0]
+  }
+
+  // 移除末尾的 Z
+  normalizedStr = normalizedStr.replace('Z', '')
+
+  console.log('formatDateTime input:', dateStr, 'normalized:', normalizedStr)
+
+  const date = new Date(normalizedStr)
+
+  if (isNaN(date.getTime())) {
+    console.warn('Invalid date:', dateStr, 'normalized:', normalizedStr)
+    return dateStr
+  }
+
   const month = (date.getMonth() + 1).toString().padStart(2, '0')
   const day = date.getDate().toString().padStart(2, '0')
   const hours = date.getHours().toString().padStart(2, '0')
   const minutes = date.getMinutes().toString().padStart(2, '0')
-  return `${month}-${day} ${hours}:${minutes}`
+
+  const result = `${month}-${day} ${hours}:${minutes}`
+  console.log('formatDateTime result:', result)
+  return result
 }
 
 /**

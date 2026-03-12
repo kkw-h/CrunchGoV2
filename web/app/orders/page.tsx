@@ -106,6 +106,12 @@ export default function OrdersPage() {
             </div>
             <div className="flex items-center space-x-4">
               <Link
+                href="/orders/create"
+                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
+              >
+                + 代客下单
+              </Link>
+              <Link
                 href="/orders/queue"
                 className="text-sm text-blue-600 hover:text-blue-800"
               >
@@ -231,13 +237,20 @@ export default function OrdersPage() {
                       ¥{formatPrice(order.total_amount)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          statusConfig[order.status]?.color || "bg-gray-100"
-                        }`}
-                      >
-                        {statusConfig[order.status]?.label || order.status}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            statusConfig[order.status]?.color || "bg-gray-100"
+                          }`}
+                        >
+                          {statusConfig[order.status]?.label || order.status}
+                        </span>
+                        {order.source_type === "merchant" && (
+                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                            代下单
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {formatDateTime(order.created_at)}

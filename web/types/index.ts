@@ -139,6 +139,8 @@ export interface OrderItem {
   selected_options: OrderItemOption[];
 }
 
+export type OrderSource = "customer" | "merchant";
+
 export interface Order {
   id: string;
   order_number: string;
@@ -149,6 +151,7 @@ export interface Order {
   note?: string | null;
   customer_name?: string | null;
   customer_phone?: string | null;
+  source_type?: OrderSource;
   created_at: string;
   updated_at: string;
   completed_at?: string | null;
@@ -158,6 +161,18 @@ export interface OrderCreate {
   customer_name?: string;
   customer_phone?: string;
   note?: string;
+  items: {
+    product_id: string;
+    quantity: number;
+    options?: OrderItemOptionCreate[];
+  }[];
+}
+
+export interface MerchantOrderCreate {
+  customer_name?: string;
+  customer_phone?: string;
+  note?: string;
+  pickup_code?: string;
   items: {
     product_id: string;
     quantity: number;
