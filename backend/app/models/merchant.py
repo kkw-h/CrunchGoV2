@@ -49,6 +49,9 @@ class Merchant(Base):
     # 其他配置
     auto_print_order: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
+    # 常用订单备注 (JSON 格式存储数组)
+    quick_remarks: Mapped[str | None] = mapped_column(String(1000), default="[]", nullable=True)
+
     # 微信小程序配置
     wechat_app_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
     wechat_app_secret: Mapped[str | None] = mapped_column(String(100), nullable=True)

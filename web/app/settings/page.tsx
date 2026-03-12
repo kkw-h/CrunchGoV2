@@ -312,7 +312,9 @@ function SettingsForm({ settings, onSave, loading }: SettingsFormProps) {
     prefix: settings.pickup_code.prefix,
     dailyReset: settings.pickup_code.daily_reset,
     autoPrint: settings.auto_print_order,
+    quickRemarks: settings.quick_remarks || [],
   });
+  const [newRemark, setNewRemark] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -322,6 +324,24 @@ function SettingsForm({ settings, onSave, loading }: SettingsFormProps) {
         daily_reset: formData.dailyReset,
       },
       auto_print_order: formData.autoPrint,
+      quick_remarks: formData.quickRemarks,
+    });
+  };
+
+  const addRemark = () => {
+    if (newRemark.trim() && formData.quickRemarks.length < 10) {
+      setFormData({
+        ...formData,
+        quickRemarks: [...formData.quickRemarks, newRemark.trim()],
+      });
+      setNewRemark("");
+    }
+  };
+
+  const removeRemark = (index: number) => {
+    setFormData({
+      ...formData,
+      quickRemarks: formData.quickRemarks.filter((_, i) => i !== index),
     });
   };
 
@@ -381,6 +401,54 @@ function SettingsForm({ settings, onSave, loading }: SettingsFormProps) {
         <p className="mt-1 text-sm text-gray-500">
           开启后，新订单会自动发送到打印机（需配合打印设备使用）
         </p>
+      </div>
+
+      <div className="border-t pt-6">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">常用备注设置</h3>
+        <p className="text-sm text-gray-500 mb-4">
+          设置常用备注后，顾客在下单时可以快速选择这些备注（最多10条）
+        </p>
+
+        <div className="flex gap-2 mb-4">
+          <input
+            type="text"
+            value={newRemark}
+            onChange={(e) => setNewRemark(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addRemark())}
+            maxLength={20}
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+            placeholder="输入常用备注，如：少盐、不要辣"
+          />
+          <button
+            type="button"
+            onClick={addRemark}
+            disabled={formData.quickRemarks.length >= 10 || !newRemark.trim()}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
+          >
+            添加
+          </button>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {formData.quickRemarks.map((remark, index) => (
+            <span
+              key={index}
+              className="inline-flex items-center px-3 py-1.5 bg-orange-50 text-orange-700 rounded-full text-sm border border-orange-200"
+            >
+              {remark}
+              <button
+                type="button"
+                onClick={() => removeRemark(index)}
+                className="ml-2 text-orange-400 hover:text-orange-600"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+          {formData.quickRemarks.length === 0 && (
+            <span className="text-gray-400 text-sm">暂无常用备注</span>
+          )}
+        </div>
       </div>
 
       <div className="flex justify-end pt-4 border-t">

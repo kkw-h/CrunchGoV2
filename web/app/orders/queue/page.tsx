@@ -134,6 +134,19 @@ export default function QueuePage() {
     };
   }, [useWebSocket, mutate]);
 
+  // 注册 Service Worker（覆盖可能存在的旧 SW）
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then((registration) => {
+          console.log('SW registered:', registration);
+        })
+        .catch((err) => {
+          console.log('SW registration failed:', err);
+        });
+    }
+  }, []);
+
   // 初始化 WebSocket
   useEffect(() => {
     if (useWebSocket) {

@@ -91,7 +91,7 @@ def build_order_response(order: Order) -> OrderResponse:
 async def list_orders(
     db: DBSession,
     current_user: CurrentUser,
-    status: OrderStatus | None = Query(None, description="订单状态筛选"),
+    status: str | None = Query(None, description="订单状态筛选（单个状态或逗号分隔的多个状态，如：pending 或 pending,preparing,ready）"),
     pickup_code: str | None = Query(None, description="取餐码"),
     start_date: datetime | None = Query(None, description="开始日期"),
     end_date: datetime | None = Query(None, description="结束日期"),
@@ -115,8 +115,13 @@ async def list_orders(
     if isinstance(current_user, User):
         filters.append(Order.user_id == current_user.id)
 
+    # 解析状态参数（支持单个或多个逗号分隔）
     if status:
-        filters.append(Order.status == status)
+        status_list = [s.strip() for s in status.split(",") if s.strip()]
+        if len(status_list) == 1:
+            filters.append(Order.status == status_list[0])
+        elif len(status_list) > 1:
+            filters.append(Order.status.in_(status_list))
     if pickup_code:
         filters.append(Order.pickup_code == pickup_code)
     if start_date:

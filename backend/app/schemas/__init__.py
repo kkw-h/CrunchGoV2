@@ -25,6 +25,7 @@ from app.schemas.merchant import (
     MerchantSettings,
     MerchantSettingsUpdate,
     PickupCodeSettings,
+    QuickRemarksSettings,
     WechatConfig,
     WechatConfigUpdate,
 )
@@ -40,6 +41,12 @@ from app.schemas.product import (
     ProductOptionValueUpdate,
     ProductResponse,
     ProductUpdate,
+)
+from app.schemas.upload import (
+    PrivateUrlRequest,
+    PrivateUrlResponse,
+    UploadResponse,
+    UploadTokenResponse,
 )
 
 __all__ = [
@@ -74,6 +81,11 @@ __all__ = [
     "MerchantSettingsUpdate",
     "BusinessHours",
     "PickupCodeSettings",
+    "QuickRemarksSettings",
     "WechatConfig",
     "WechatConfigUpdate",
+    "UploadResponse",
+    "UploadTokenResponse",
+    "PrivateUrlRequest",
+    "PrivateUrlResponse",
 ]

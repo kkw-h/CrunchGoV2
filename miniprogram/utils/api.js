@@ -66,6 +66,11 @@ const api = {
     getMe: () => request({
       url: '/api/v1/auth/me',
       method: 'GET'
+    }),
+    updateMe: (data) => request({
+      url: '/api/v1/auth/me',
+      method: 'PATCH',
+      data
     })
   },
 
@@ -124,6 +129,10 @@ const api = {
   merchant: {
     getProfile: () => request({
       url: '/api/v1/merchant/profile',
+      method: 'GET'
+    }),
+    getSettings: () => request({
+      url: '/api/v1/merchant/settings',
       method: 'GET'
     })
   }

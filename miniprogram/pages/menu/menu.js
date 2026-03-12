@@ -37,10 +37,14 @@ Page({
   loadCart() {
     const cart = wx.getStorageSync('cart') || []
     // 计算每个购物车项的显示价格
-    const cartWithPriceYuan = cart.map(item => ({
-      ...item,
-      itemTotalYuan: this._formatPrice((item.price + (item.optionsExtraPrice || 0)) * item.quantity)
-    }))
+    const cartWithPriceYuan = cart.map(item => {
+      const unitPrice = item.price + (item.optionsExtraPrice || 0)
+      return {
+        ...item,
+        unitPriceYuan: this._formatPrice(unitPrice),
+        itemTotalYuan: this._formatPrice(unitPrice * item.quantity)
+      }
+    })
     this.setData({
       cart: cartWithPriceYuan,
       cartTotalYuan: this._formatPrice(this.calculateCartTotal(cart)),
@@ -299,20 +303,24 @@ Page({
 
     if (existingIndex > -1) {
       cart[existingIndex].quantity += 1
+      cart[existingIndex].itemTotalYuan = this._formatPrice((cart[existingIndex].price + (cart[existingIndex].optionsExtraPrice || 0)) * cart[existingIndex].quantity)
     } else {
+      const unitPrice = product.price + optionsExtraPrice
       cart.push({
         id: product.id,
         name: product.name,
         price: product.price,
         optionsExtraPrice,
         selectedOptions: options,
-        quantity: 1
+        quantity: 1,
+        unitPriceYuan: this._formatPrice(unitPrice),
+        itemTotalYuan: this._formatPrice(unitPrice)
       })
     }
 
     this.setData({
       cart,
-      cartTotal: this.calculateCartTotal(cart),
+      cartTotalYuan: this._formatPrice(this.calculateCartTotal(cart)),
       cartCount: this.calculateCartCount(cart)
     })
     wx.setStorageSync('cart', cart)
@@ -330,14 +338,17 @@ Page({
 
     if (cart[index].quantity > 1) {
       cart[index].quantity -= 1
+      const unitPrice = cart[index].price + (cart[index].optionsExtraPrice || 0)
+      cart[index].itemTotalYuan = this._formatPrice(unitPrice * cart[index].quantity)
     } else {
       cart.splice(index, 1)
     }
 
     this.setData({
       cart,
-      cartTotal: this.calculateCartTotal(cart),
-      cartCount: this.calculateCartCount(cart)
+      cartTotalYuan: this._formatPrice(this.calculateCartTotal(cart)),
+      cartCount: this.calculateCartCount(cart),
+      showCartDetail: cart.length > 0 ? this.data.showCartDetail : false
     })
     wx.setStorageSync('cart', cart)
   },
@@ -347,10 +358,12 @@ Page({
     const { index } = e.currentTarget.dataset
     let cart = [...this.data.cart]
     cart[index].quantity += 1
+    const unitPrice = cart[index].price + (cart[index].optionsExtraPrice || 0)
+    cart[index].itemTotalYuan = this._formatPrice(unitPrice * cart[index].quantity)
 
     this.setData({
       cart,
-      cartTotal: this.calculateCartTotal(cart),
+      cartTotalYuan: this._formatPrice(this.calculateCartTotal(cart)),
       cartCount: this.calculateCartCount(cart)
     })
     wx.setStorageSync('cart', cart)
@@ -364,25 +377,43 @@ Page({
 
     this.setData({
       cart,
-      cartTotal: this.calculateCartTotal(cart),
-      cartCount: this.calculateCartCount(cart)
+      cartTotalYuan: this._formatPrice(this.calculateCartTotal(cart)),
+      cartCount: this.calculateCartCount(cart),
+      showCartDetail: cart.length > 0 ? this.data.showCartDetail : false
     })
     wx.setStorageSync('cart', cart)
   },
 
   // 清空购物车
   clearCart() {
-    this.setData({
-      cart: [],
-      cartTotal: 0,
-      cartCount: 0
+    wx.showModal({
+      title: '提示',
+      content: '确定清空购物车吗？',
+      confirmColor: '#ff6600',
+      success: (res) => {
+        if (res.confirm) {
+          this.setData({
+            cart: [],
+            cartTotalYuan: '0.00',
+            cartCount: 0,
+            showCartDetail: false
+          })
+          wx.setStorageSync('cart', [])
+        }
+      }
     })
-    wx.setStorageSync('cart', [])
   },
 
   // 切换购物车详情显示
   toggleCartDetail() {
-    if (this.data.cart.length === 0) return
+    if (this.data.cart.length === 0) {
+      wx.showToast({
+        title: '购物车是空的',
+        icon: 'none',
+        duration: 1500
+      })
+      return
+    }
     this.setData({
       showCartDetail: !this.data.showCartDetail
     })
@@ -391,6 +422,11 @@ Page({
   // 关闭购物车详情
   closeCartDetail() {
     this.setData({ showCartDetail: false })
+  },
+
+  // 阻止事件冒泡
+  preventClose(e) {
+    // 什么都不做，只是阻止冒泡
   },
 
   // 去结算
@@ -402,6 +438,9 @@ Page({
       })
       return
     }
+
+    // 关闭购物车弹窗
+    this.setData({ showCartDetail: false })
 
     wx.navigateTo({
       url: '/pages/cart/cart'

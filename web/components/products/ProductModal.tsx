@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createProduct, updateProduct } from "@/lib/products";
+import { uploadImage } from "@/lib/upload";
 import { Product, ProductCreate, Category, ProductOptionCreate, ProductOptionValueCreate } from "@/types";
 
 interface ProductModalProps {
@@ -42,6 +43,11 @@ export function ProductModal({
   // 选项编辑状态
   const [options, setOptions] = useState<ProductOptionCreate[]>([]);
 
+  // 图片上传状态
+  const [uploading, setUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (product) {
       setFormData({
@@ -56,6 +62,8 @@ export function ProductModal({
         options: [],
       });
       setPriceYuan((product.price / 100).toFixed(2));
+      // 设置图片预览
+      setPreviewUrl(product.image_url || null);
       // 转换已有选项为编辑格式
       setOptions(product.options.map(opt => ({
         name: opt.name,
@@ -69,6 +77,7 @@ export function ProductModal({
         })),
       })));
     } else {
+      setPreviewUrl(null);
       setFormData({
         name: "",
         description: "",
@@ -199,6 +208,61 @@ export function ProductModal({
         values: opt.values.filter((_, j) => j !== valueIndex)
       };
     }));
+  };
+
+  // 处理图片选择
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 验证文件类型
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      setError("不支持的文件类型，仅支持 JPEG、PNG、GIF、WebP");
+      return;
+    }
+
+    // 验证文件大小 (最大 5MB)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setError("文件大小超过限制 (最大 5MB)");
+      return;
+    }
+
+    // 显示本地预览
+    const localUrl = URL.createObjectURL(file);
+    setPreviewUrl(localUrl);
+
+    // 上传图片
+    setUploading(true);
+    setError(null);
+
+    try {
+      const result = await uploadImage(file);
+      setFormData(prev => ({ ...prev, image_url: result.url }));
+      setPreviewUrl(result.url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "上传失败");
+      // 恢复原来的图片
+      setPreviewUrl(product?.image_url || null);
+    } finally {
+      setUploading(false);
+      // 清除 input 值，允许重复选择同一文件
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  // 触发文件选择
+  const triggerFileSelect = () => {
+    fileInputRef.current?.click();
+  };
+
+  // 删除图片
+  const removeImage = () => {
+    setFormData(prev => ({ ...prev, image_url: "" }));
+    setPreviewUrl(null);
   };
 
   if (!isOpen) return null;
@@ -344,22 +408,92 @@ export function ProductModal({
                 />
               </div>
 
-              {/* 图片URL */}
+              {/* 商品图片 */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  图片链接
+                  商品图片
                 </label>
                 <input
-                  type="url"
-                  value={formData.image_url}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, image_url: e.target.value }))
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                  placeholder="https://example.com/image.jpg"
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  onChange={handleImageSelect}
+                  className="hidden"
                 />
+
+                {previewUrl ? (
+                  <div className="relative inline-block">
+                    <img
+                      src={previewUrl}
+                      alt="商品预览"
+                      className="w-32 h-32 object-cover rounded-lg border border-gray-300"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                      <button
+                        type="button"
+                        onClick={triggerFileSelect}
+                        className="text-white text-sm mx-1 px-2 py-1 bg-blue-600 rounded"
+                        disabled={uploading}
+                      >
+                        更换
+                      </button>
+                      <button
+                        type="button"
+                        onClick={removeImage}
+                        className="text-white text-sm mx-1 px-2 py-1 bg-red-600 rounded"
+                        disabled={uploading}
+                      >
+                        删除
+                      </button>
+                    </div>
+                    {uploading && (
+                      <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center">
+                        <div className="text-white text-sm">上传中...</div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={triggerFileSelect}
+                    disabled={uploading}
+                    className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-500 hover:border-blue-500 hover:text-blue-500 transition-colors disabled:opacity-50"
+                  >
+                    {uploading ? (
+                      <>
+                        <svg className="w-6 h-6 animate-spin mb-1" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span className="text-xs">上传中...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-8 h-8 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        <span className="text-xs">上传图片</span>
+                      </>
+                    )}
+                  </button>
+                )}
+
+                {/* 图片URL输入框（可选） */}
+                <div className="mt-2">
+                  <input
+                    type="url"
+                    value={formData.image_url}
+                    onChange={(e) => {
+                      const url = e.target.value;
+                      setFormData((prev) => ({ ...prev, image_url: url }));
+                      setPreviewUrl(url || null);
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 text-sm"
+                    placeholder="或输入图片链接 https://..."
+                  />
+                </div>
                 <p className="mt-1 text-xs text-gray-500">
-                  支持外部图片链接，留空则使用默认图标
+                  支持上传图片（最大 5MB）或输入外部链接
                 </p>
               </div>
 

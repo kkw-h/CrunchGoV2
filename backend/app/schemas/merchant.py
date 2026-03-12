@@ -42,11 +42,18 @@ class PickupCodeSettings(BaseModel):
     daily_reset: bool = Field(default=True, description="每天重置取餐码")
 
 
+class QuickRemarksSettings(BaseModel):
+    """常用备注设置."""
+
+    remarks: list[str] = Field(default=[], description="常用备注列表", max_length=10)
+
+
 class MerchantSettings(BaseModel):
     """商家设置."""
 
     pickup_code: PickupCodeSettings = Field(..., description="取餐码设置")
     auto_print_order: bool = Field(default=False, description="自动打印订单")
+    quick_remarks: list[str] = Field(default=[], description="常用备注列表")
 
 
 class MerchantSettingsUpdate(BaseModel):
@@ -54,6 +61,7 @@ class MerchantSettingsUpdate(BaseModel):
 
     pickup_code: PickupCodeSettings | None = Field(None, description="取餐码设置")
     auto_print_order: bool | None = Field(None, description="自动打印订单")
+    quick_remarks: list[str] | None = Field(None, description="常用备注列表", max_length=10)
 
 
 class WechatConfig(BaseModel):

@@ -1,5 +1,7 @@
 """商家路由."""
 
+import json
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -12,6 +14,7 @@ from app.schemas import (
     MerchantSettings,
     MerchantSettingsUpdate,
     PickupCodeSettings,
+    QuickRemarksSettings,
     WechatConfig,
     WechatConfigUpdate,
 )
@@ -122,12 +125,20 @@ async def get_settings(
             detail="商家不存在",
         )
 
+    quick_remarks = []
+    try:
+        if merchant.quick_remarks:
+            quick_remarks = json.loads(merchant.quick_remarks)
+    except json.JSONDecodeError:
+        pass
+
     return MerchantSettings(
         pickup_code=PickupCodeSettings(
             prefix=merchant.pickup_code_prefix,
             daily_reset=merchant.pickup_code_daily_reset,
         ),
         auto_print_order=merchant.auto_print_order,
+        quick_remarks=quick_remarks,
     )
 
 
@@ -159,8 +170,21 @@ async def update_settings(
     if "auto_print_order" in update_data:
         merchant.auto_print_order = update_data["auto_print_order"]
 
+    if "quick_remarks" in update_data and update_data["quick_remarks"] is not None:
+        # 限制最多10条，每条最多20个字符
+        remarks = update_data["quick_remarks"][:10]
+        remarks = [r[:20] for r in remarks if r.strip()]
+        merchant.quick_remarks = json.dumps(remarks)
+
     await db.commit()
     await db.refresh(merchant)
+
+    quick_remarks = []
+    try:
+        if merchant.quick_remarks:
+            quick_remarks = json.loads(merchant.quick_remarks)
+    except json.JSONDecodeError:
+        pass
 
     return MerchantSettings(
         pickup_code=PickupCodeSettings(
@@ -168,6 +192,7 @@ async def update_settings(
             daily_reset=merchant.pickup_code_daily_reset,
         ),
         auto_print_order=merchant.auto_print_order,
+        quick_remarks=quick_remarks,
     )
 
 

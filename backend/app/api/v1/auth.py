@@ -17,6 +17,7 @@ from app.models.merchant import Merchant
 from app.models.user import User
 from app.schemas.auth import (
     UserInfoResponse,
+    UserProfileUpdate,
     WechatLoginRequest,
     WechatLoginResponse,
 )
@@ -222,3 +223,37 @@ async def get_me(current_user: CurrentUser):
         "name": current_user.name,
         "type": "merchant",
     }
+
+
+@router.patch("/me", response_model=UserInfoResponse)
+async def update_me(
+    data: UserProfileUpdate,
+    current_user: CurrentUser,
+    db: DBSession,
+):
+    """更新当前用户信息（仅微信小程序用户）."""
+    # 仅支持微信用户更新
+    if not isinstance(current_user, User):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="商家用户不能通过此接口更新信息",
+        )
+
+    # 更新字段
+    if data.nickname is not None:
+        current_user.nickname = data.nickname
+    if data.avatar_url is not None:
+        current_user.avatar_url = data.avatar_url
+    if data.phone is not None:
+        current_user.phone = data.phone
+
+    await db.commit()
+    await db.refresh(current_user)
+
+    return UserInfoResponse(
+        id=current_user.id,
+        openid=current_user.openid,
+        nickname=current_user.nickname,
+        avatar_url=current_user.avatar_url,
+        phone=current_user.phone,
+    )

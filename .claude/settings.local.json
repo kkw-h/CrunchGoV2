@@ -56,7 +56,14 @@
       "Bash(ls -la *.png && file menu.png)",
       "Bash(rm -f *.png && python3 generate_icons.py && ls -la *.png)",
       "Bash(uv sync:*)",
-      "Bash(uv add:*)"
+      "Bash(uv add:*)",
+      "Bash(cd /Users/hanxiaodi/www/CrunchGoV2/backend && lsof -ti:8000 | xargs kill -9 2>/dev/null || true && uv run uvicorn app.main:app --reload --port 8000)",
+      "Bash(curl -s http://localhost:8000/api/v1/categories | head -100)",
+      "Bash(curl -s http://localhost:8000/api/v1/categories 2>&1)",
+      "Bash(sleep 3 && curl -s http://localhost:8000/api/v1/categories)",
+      "Bash(curl -s http://localhost:8000/api/v1/categories | python -m json.tool 2>/dev/null || curl -s http://localhost:8000/api/v1/categories)",
+      "Bash(curl -s http://localhost:8000/api/v1/merchant/settings | python -m json.tool)",
+      "Bash(curl -s http://localhost:8000/health)"
     ]
   }
 }

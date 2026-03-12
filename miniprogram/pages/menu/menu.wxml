@@ -72,36 +72,63 @@
 
   <!-- 购物车详情弹窗 -->
   <view wx:if="{{showCartDetail}}" class="cart-modal" bindtap="closeCartDetail">
-    <view class="cart-detail" catchtap="preventClose">
-      <view class="cart-header">
-        <text>已选商品</text>
-        <text class="clear-btn" bindtap="clearCart">清空</text>
+    <view class="cart-detail {{showCartDetail ? 'show' : ''}}" catchtap="preventClose">
+      <!-- 拖动条 -->
+      <view class="drag-bar" bindtap="closeCartDetail">
+        <view class="drag-handle"></view>
       </view>
 
-      <scroll-view scroll-y class="cart-items">
-        <view wx:for="{{cart}}" wx:key="index" class="cart-item"
-        >
-          <view class="item-info"
-          >
+      <view class="cart-header">
+        <view class="cart-title">
+          <text class="title-text">已选商品</text>
+          <text class="cart-count">共 {{cartCount}} 件</text>
+        </view>
+        <view class="clear-btn" bindtap="clearCart">
+          <image src="/images/icon-delete.png" mode="aspectFit" class="delete-icon"></image>
+          <text>清空</text>
+        </view>
+      </view>
+
+      <scroll-view scroll-y class="cart-items" enable-flex>
+        <!-- 空状态 -->
+        <view wx:if="{{cart.length === 0}}" class="cart-empty-state">
+          <view class="empty-cart-icon">🛒</view>
+          <text class="empty-cart-text">购物车是空的</text>
+          <text class="empty-cart-hint">快去选购心仪的商品吧</text>
+        </view>
+
+        <view wx:for="{{cart}}" wx:key="index" class="cart-item">
+          <view class="item-main">
             <text class="item-name">{{item.name}}</text>
-            <view wx:if="{{item.selectedOptions.length > 0}}" class="item-options"
-            >
-              <text wx:for="{{item.selectedOptions}}" wx:for-item="opt">{{opt.option_name}}: {{opt.option_value}}</text>
+            <view wx:if="{{item.selectedOptions.length > 0}}" class="item-options">
+              <text wx:for="{{item.selectedOptions}}" wx:for-item="opt" wx:key="index" class="option-tag">{{opt.option_name}}: {{opt.option_value}}</text>
             </view>
+            <text class="item-unit-price">¥{{item.unitPriceYuan}}/份</text>
           </view>
 
-          <view class="item-right"
-          >
+          <view class="item-right">
             <text class="item-price">¥{{item.itemTotalYuan}}</text>
-            <view class="quantity-control"
-            >
-              <button bindtap="decreaseQuantity" data-index="{{index}}">-</button>
-              <text>{{item.quantity}}</text>
-              <button bindtap="increaseQuantity" data-index="{{index}}">+</button>
+            <view class="quantity-control">
+              <view class="btn-minus {{item.quantity <= 1 ? 'disabled' : ''}}" bindtap="decreaseQuantity" data-index="{{index}}">
+                <text>-</text>
+              </view>
+              <text class="quantity-num">{{item.quantity}}</text>
+              <view class="btn-plus" bindtap="increaseQuantity" data-index="{{index}}">
+                <text>+</text>
+              </view>
             </view>
           </view>
         </view>
       </scroll-view>
+
+      <!-- 底部结算栏 -->
+      <view class="cart-popup-footer">
+        <view class="cart-popup-info">
+          <text class="popup-total-label">合计：</text>
+          <text class="popup-total-price">¥{{cartTotalYuan}}</text>
+        </view>
+        <button class="btn-popup-checkout" bindtap="goToCheckout">去结算</button>
+      </view>
     </view>
   </view>
 

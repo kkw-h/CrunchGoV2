@@ -1,5 +1,5 @@
 const { api } = require('../../utils/api')
-const { formatPrice, formatTime, showLoading, hideLoading } = require('../../utils/util')
+const { formatTime } = require('../../utils/util')
 const auth = require('../../utils/auth')
 
 Page({
@@ -7,12 +7,25 @@ Page({
     userInfo: null,
     hasUserInfo: false,
     canIUseGetUserProfile: false,
+    isEditing: false,
+    editNickname: '',
+    tempAvatarUrl: '',
     orderStats: {
       pending: 0,
       preparing: 0,
-      ready: 0
+      ready: 0,
+      total: 0
     },
     recentOrders: []
+  },
+
+  // 状态文本映射
+  statusTextMap: {
+    pending: '待制作',
+    preparing: '制作中',
+    ready: '待取餐',
+    completed: '已完成',
+    cancelled: '已取消'
   },
 
   _formatPrice(price) {
@@ -42,7 +55,7 @@ Page({
     this.loadOrderStats()
   },
 
-  // 获取用户信息
+  // 获取用户信息（旧版方式，供点击头像区域使用）
   async getUserProfile() {
     // 先检查是否已登录
     if (!auth.isLoggedIn()) {
@@ -60,17 +73,42 @@ Page({
     // 获取微信用户信息
     wx.getUserProfile({
       desc: '用于完善用户资料',
-      success: (res) => {
-        // 更新本地显示
-        this.setData({
-          userInfo: res.userInfo,
-          hasUserInfo: true
-        })
-        // 更新后端用户信息
-        auth.updateUserInfo({
-          nickname: res.userInfo.nickName,
-          avatar_url: res.userInfo.avatarUrl
-        })
+      success: async (res) => {
+        const { nickName, avatarUrl } = res.userInfo
+
+        wx.showLoading({ title: '保存中...' })
+        try {
+          // 更新后端
+          await api.auth.updateMe({
+            nickname: nickName,
+            avatar_url: avatarUrl
+          })
+
+          // 更新本地显示
+          this.setData({
+            userInfo: {
+              nickName,
+              avatarUrl
+            },
+            hasUserInfo: true
+          })
+
+          // 更新本地存储
+          auth.updateUserInfo({
+            nickname: nickName,
+            avatar_url: avatarUrl
+          })
+
+          wx.showToast({
+            title: '保存成功',
+            icon: 'success'
+          })
+        } catch (err) {
+          wx.showToast({
+            title: '保存失败',
+            icon: 'none'
+          })
+        }
       }
     })
   },
@@ -134,12 +172,14 @@ Page({
 
       const orders = (res.items || []).map(order => ({
         ...order,
-        totalAmountYuan: this._formatPrice(order.total_amount)
+        totalAmountYuan: this._formatPrice(order.total_amount),
+        statusText: this.statusTextMap[order.status] || order.status
       }))
       const stats = {
         pending: orders.filter(o => o.status === 'pending').length,
         preparing: orders.filter(o => o.status === 'preparing').length,
-        ready: orders.filter(o => o.status === 'ready').length
+        ready: orders.filter(o => o.status === 'ready').length,
+        total: orders.length
       }
 
       this.setData({
@@ -149,7 +189,7 @@ Page({
     } catch (err) {
       console.error('Load order stats failed:', err)
       this.setData({
-        orderStats: { pending: 0, preparing: 0, ready: 0 },
+        orderStats: { pending: 0, preparing: 0, ready: 0, total: 0 },
         recentOrders: []
       })
     }
@@ -188,20 +228,74 @@ Page({
     })
 
     if (confirm) {
+      // 执行带用户信息获取的登录
+      this.doLoginWithProfile()
+    }
+  },
+
+  // 执行登录并获取微信用户信息
+  async doLoginWithProfile() {
+    wx.showLoading({ title: '登录中...' })
+
+    try {
+      // 1. 静默登录获取 token
       const result = await auth.silentLogin()
-      if (result.success) {
-        wx.showToast({
-          title: '登录成功',
-          icon: 'success'
-        })
-        this.loadUserInfo()
-        this.loadOrderStats()
-      } else {
-        wx.showToast({
-          title: '登录失败',
-          icon: 'none'
-        })
+      if (!result.success) {
+        throw new Error(result.error || '登录失败')
       }
+
+      wx.hideLoading()
+
+      // 2. 登录成功，获取微信用户信息（必须在用户点击的上下文中调用）
+      wx.getUserProfile({
+        desc: '用于完善用户资料',
+        success: async (res) => {
+          const { nickName, avatarUrl } = res.userInfo
+
+          wx.showLoading({ title: '保存中...' })
+          try {
+            // 更新到后端
+            await api.auth.updateMe({
+              nickname: nickName,
+              avatar_url: avatarUrl
+            })
+
+            // 更新本地存储
+            auth.updateUserInfo({
+              nickname: nickName,
+              avatar_url: avatarUrl
+            })
+
+            wx.showToast({
+              title: '登录成功',
+              icon: 'success'
+            })
+
+            this.loadUserInfo()
+            this.loadOrderStats()
+          } catch (err) {
+            console.error('Save user info failed:', err)
+            // 保存用户信息失败不影响登录
+            this.loadUserInfo()
+            this.loadOrderStats()
+          }
+        },
+        fail: () => {
+          // 用户拒绝授权，仍然登录成功
+          wx.showToast({
+            title: '登录成功',
+            icon: 'success'
+          })
+          this.loadUserInfo()
+          this.loadOrderStats()
+        }
+      })
+    } catch (err) {
+      wx.hideLoading()
+      wx.showToast({
+        title: err.message || '登录失败',
+        icon: 'none'
+      })
     }
   },
 
@@ -219,6 +313,129 @@ Page({
     })
   },
 
+  // 开始编辑资料
+  startEdit() {
+    if (!this.data.hasUserInfo) {
+      this.promptLogin()
+      return
+    }
+    this.setData({
+      isEditing: true,
+      editNickname: this.data.userInfo.nickName || '',
+      tempAvatarUrl: this.data.userInfo.avatarUrl || ''
+    })
+  },
+
+  // 取消编辑
+  cancelEdit() {
+    this.setData({
+      isEditing: false,
+      editNickname: '',
+      tempAvatarUrl: ''
+    })
+  },
+
+  // 选择头像
+  onChooseAvatar(e) {
+    const { avatarUrl } = e.detail
+    this.setData({
+      tempAvatarUrl: avatarUrl
+    })
+  },
+
+  // 昵称输入
+  onNicknameInput(e) {
+    this.setData({
+      editNickname: e.detail.value
+    })
+  },
+
+  // 保存用户资料
+  async saveProfile() {
+    const { editNickname, tempAvatarUrl } = this.data
+
+    if (!editNickname.trim()) {
+      wx.showToast({
+        title: '请输入昵称',
+        icon: 'none'
+      })
+      return
+    }
+
+    wx.showLoading({ title: '保存中...' })
+
+    try {
+      let avatarUrl = this.data.userInfo.avatarUrl
+
+      // 如果头像有变更，先上传到服务器
+      if (tempAvatarUrl && tempAvatarUrl !== this.data.userInfo.avatarUrl) {
+        // 将临时文件上传到七牛云
+        const uploadRes = await this.uploadAvatar(tempAvatarUrl)
+        avatarUrl = uploadRes.url
+      }
+
+      // 更新用户信息
+      await api.auth.updateMe({
+        nickname: editNickname.trim(),
+        avatar_url: avatarUrl
+      })
+
+      // 更新本地显示
+      this.setData({
+        userInfo: {
+          ...this.data.userInfo,
+          nickName: editNickname.trim(),
+          avatarUrl: avatarUrl
+        },
+        isEditing: false
+      })
+
+      // 更新本地存储
+      auth.updateUserInfo({
+        nickname: editNickname.trim(),
+        avatar_url: avatarUrl
+      })
+
+      wx.showToast({
+        title: '保存成功',
+        icon: 'success'
+      })
+    } catch (err) {
+      console.error('Save profile failed:', err)
+      wx.showToast({
+        title: err.message || '保存失败',
+        icon: 'none'
+      })
+    } finally {
+      wx.hideLoading()
+    }
+  },
+
+  // 上传头像到后端
+  async uploadAvatar(tempFilePath) {
+    const app = getApp()
+    return new Promise((resolve, reject) => {
+      wx.uploadFile({
+        url: `${app.globalData.apiBaseUrl}/api/v1/upload/image`,
+        filePath: tempFilePath,
+        name: 'file',
+        header: {
+          'Authorization': `Bearer ${auth.getToken()}`
+        },
+        success: (res) => {
+          if (res.statusCode === 200) {
+            const data = JSON.parse(res.data)
+            resolve(data)
+          } else {
+            const error = JSON.parse(res.data)
+            reject(new Error(error.detail || '上传失败'))
+          }
+        },
+        fail: reject
+      })
+    })
+  },
+
   // 退出登录
   logout() {
     wx.showModal({
@@ -230,7 +447,7 @@ Page({
           this.setData({
             userInfo: null,
             hasUserInfo: false,
-            orderStats: { pending: 0, preparing: 0, ready: 0 },
+            orderStats: { pending: 0, preparing: 0, ready: 0, total: 0 },
             recentOrders: []
           })
           wx.showToast({

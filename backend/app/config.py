@@ -42,6 +42,13 @@ class Settings(BaseSettings):
     WECHAT_MINIAPP_ID: str = ""
     WECHAT_MINIAPP_SECRET: str = ""
 
+    # 七牛云配置
+    QINIU_ACCESS_KEY: str = "Cq_dW5IH3UhdWOWsYgFHrccRFyedm5o2e7s1BrDz"
+    QINIU_SECRET_KEY: str = "82Sthf0UGk8xp_avg1WRO9xgrMIdLUljeKiCBi8j"
+    QINIU_BUCKET_NAME: str = "crunch-go"
+    QINIU_DOMAIN: str = "http://crunch.image.kkworld.top"
+    QINIU_IS_PRIVATE: bool = True  # 是否为私有空间，私有空间访问需要下载凭证
+
     @property
     def allowed_hosts_list(self) -> List[str]:
         """获取允许的 CORS 域名列表."""

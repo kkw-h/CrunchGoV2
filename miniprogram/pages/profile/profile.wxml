@@ -1,14 +1,36 @@
 <view class="container">
   <!-- 用户信息卡片 -->
   <view class="user-card">
-    <view wx:if="{{hasUserInfo}}" class="user-info">
-      <image class="avatar" src="{{userInfo.avatarUrl}}" mode="aspectFill"></image>
+    <!-- 编辑模式 -->
+    <view wx:if="{{isEditing}}" class="user-info edit-mode">
+      <button class="avatar-edit-btn" open-type="chooseAvatar" bind:chooseavatar="onChooseAvatar">
+        <image class="avatar" src="{{tempAvatarUrl}}" mode="aspectFill" wx:if="{{tempAvatarUrl}}"></image>
+        <view class="avatar-placeholder" wx:else>
+          <text>点击上传</text>
+        </view>
+        <view class="avatar-edit-hint">点击修改</view>
+      </button>
       <view class="user-meta">
-        <text class="nickname">{{userInfo.nickName}}</text>
-        <text class="phone">138****8888</text>
+        <input class="nickname-input" type="nickname" placeholder="请输入昵称" value="{{editNickname}}" bind:input="onNicknameInput" />
+      </view>
+      <view class="edit-actions">
+        <button class="btn-save" bindtap="saveProfile">保存</button>
+        <button class="btn-cancel" bindtap="cancelEdit">取消</button>
       </view>
     </view>
-    <view wx:else class="user-info" bindtap="getUserProfile">
+    <!-- 展示模式 -->
+    <view wx:elif="{{hasUserInfo}}" class="user-info" bindtap="startEdit">
+      <image class="avatar" src="{{userInfo.avatarUrl}}" mode="aspectFill" wx:if="{{userInfo.avatarUrl}}"></image>
+      <view class="avatar-placeholder" wx:else>
+        <text>用户</text>
+      </view>
+      <view class="user-meta">
+        <text class="nickname">{{userInfo.nickName || '点击设置昵称'}}</text>
+        <text class="hint">点击编辑资料</text>
+      </view>
+      <text class="edit-icon">✏️</text>
+    </view>
+    <view wx:else class="user-info" bindtap="promptLogin">
       <view class="avatar-placeholder">
         <text>点击登录</text>
       </view>
@@ -35,8 +57,8 @@
         <text class="stat-label">待取餐</text>
       </view>
       <view class="stat-item" bindtap="goToOrders">
-        <text class="stat-num">全部</text>
-        <text class="stat-label">订单</text>
+        <text class="stat-num">{{orderStats.total}}</text>
+        <text class="stat-label">全部</text>
       </view>
     </view>
   </view>
@@ -51,7 +73,7 @@
       <view wx:for="{{recentOrders}}" wx:key="id" class="order-item" bindtap="goToOrderDetail" data-id="{{item.id}}">
         <view class="order-top">
           <text class="order-code">取餐码: {{item.pickup_code}}</text>
-          <text class="order-status {{item.status}}">{{item.status === 'pending' ? '待制作' : item.status === 'preparing' ? '制作中' : '待取餐'}}</text>
+          <text class="order-status {{item.status}}">{{item.statusText}}</text>
         </view>
         <view class="order-goods">
           <text wx:for="{{item.items}}" wx:for-item="goods" wx:key="id">{{goods.product_name}}</text>

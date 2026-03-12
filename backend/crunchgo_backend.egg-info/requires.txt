@@ -10,6 +10,7 @@ passlib>=1.7.4
 bcrypt<5.0.0,>=4.0.0
 python-multipart>=0.0.0
 httpx>=0.28.0
+qiniu>=7.16.0
 
 [dev]
 pytest>=8.3.0

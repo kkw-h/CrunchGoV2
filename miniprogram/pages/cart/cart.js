@@ -10,7 +10,10 @@ Page({
     customerPhone: '',
     submitting: false,
     merchantInfo: null,
-    totalPrice: 0
+    merchantSettings: null,
+    quickRemarks: [],
+    totalPrice: 0,
+    isLoading: true
   },
 
   _formatPrice(price) {
@@ -27,6 +30,7 @@ Page({
   onLoad() {
     this.loadCart()
     this.loadMerchantInfo()
+    this.loadMerchantSettings()
     this.loadUserInfo()
   },
 
@@ -45,7 +49,8 @@ Page({
     }))
     this.setData({
       cart: cartWithPriceYuan,
-      totalPriceYuan: this._formatPrice(this.calculateTotalPrice(cart))
+      totalPriceYuan: this._formatPrice(this.calculateTotalPrice(cart)),
+      isLoading: false
     })
   },
 
@@ -67,12 +72,27 @@ Page({
     }
   },
 
+  // 加载商家设置（常用备注）
+  async loadMerchantSettings() {
+    try {
+      const res = await api.merchant.getSettings()
+      this.setData({
+        merchantSettings: res,
+        quickRemarks: res.quick_remarks || []
+      })
+    } catch (err) {
+      console.error('Load merchant settings failed:', err)
+    }
+  },
+
   // 加载用户信息
   loadUserInfo() {
-    const userInfo = wx.getStorageSync('userInfo')
+    const userInfo = wx.getStorageSync('user_info')
     if (userInfo) {
+      // 优先使用 nickname（后端存储），其次是 nickName（微信原始）
+      const name = userInfo.nickname || userInfo.nickName || ''
       this.setData({
-        customerName: userInfo.nickName || ''
+        customerName: name
       })
     }
   },
@@ -142,11 +162,12 @@ Page({
     wx.showModal({
       title: '提示',
       content: '确定清空购物车吗？',
+      confirmColor: '#ff6600',
       success: (res) => {
         if (res.confirm) {
           this.setData({
             cart: [],
-            totalPrice: 0
+            totalPriceYuan: '0.00'
           })
           wx.setStorageSync('cart', [])
           wx.navigateBack()
@@ -157,7 +178,29 @@ Page({
 
   // 备注输入
   onRemarkInput(e) {
-    this.setData({ remark: e.detail.value })
+    this.setData({
+      remark: e.detail.value
+    })
+  },
+
+  // 点击快捷备注
+  onQuickRemarkTap(e) {
+    const { remark } = e.currentTarget.dataset
+    const currentRemark = this.data.remark
+    // 如果已经有内容，追加逗号分隔
+    const newRemark = currentRemark
+      ? currentRemark + (currentRemark.endsWith('，') || currentRemark.endsWith(',') ? '' : '，') + remark
+      : remark
+    this.setData({ remark: newRemark })
+  },
+
+  // 切换价格明细（可选）
+  togglePriceDetail() {
+    // 可以展开显示详细价格 breakdown
+    wx.showToast({
+      title: '商品明细',
+      icon: 'none'
+    })
   },
 
   // 姓名输入

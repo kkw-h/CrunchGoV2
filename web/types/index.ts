@@ -216,11 +216,13 @@ export interface PickupCodeSettings {
 export interface MerchantSettings {
   pickup_code: PickupCodeSettings;
   auto_print_order: boolean;
+  quick_remarks: string[];
 }
 
 export interface MerchantSettingsUpdate {
   pickup_code?: PickupCodeSettings;
   auto_print_order?: boolean;
+  quick_remarks?: string[];
 }
 
 export interface WechatConfig {
